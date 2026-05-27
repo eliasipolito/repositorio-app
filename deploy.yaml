@@ -1,0 +1,51 @@
+name: Pipeline CI/CD
+
+on: 
+  push:
+    branches:
+      - main
+
+jobs:
+  job1:
+    name: build_ecr
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkount@v5.0.0
+
+      - name: "Configure AWS Credentials"
+        uses: aws-actions/configure-aws-credentials@v4.3.1
+        with:
+          role-to-assume:
+          aws-region: us-east-2
+
+      - name: Amazon ECR "Login" Action for GitHub Actions
+        uses: aws-actions/amazon-ecr-login@v2.0.1
+
+      - name: Build Image
+        runs: | 
+          docker build -t meu-site:v1.0 .
+          docker tag meu-site:v1.0 461546078282.dkr.ecr.us-east-2.amazonaws.com/site_prod
+          docker push 461546078282.dkr.ecr.us-east-2.amazonaws.com/site_prod:v1.0
+          docker push 461546078282.dkr.ecr.us-east-2.amazonaws.com/site_prod:v1.0
+
+jobs:
+  job2:
+    env:
+      INSTANCE_KEY: ${{secrets.INSTANCE_KEY}}
+      PUBLIC_IP: ${{secrets.PUBLIC_IP}}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy EC2 SSH
+        run: | 
+          echo "$INSTANCE_KEY" > chavekey.pem
+          chmod 400 chavekey.pem
+          ssh -i chavekey.pem -o StrictHostKeyChecking=no ec2-user@$PUBLIC_IP << EOF
+          aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdi 
+          docker pull 461546078282.dkr.ecr.us-east-2.amazonaws.com/site_prod:v1.0
+          docker stop site  || true
+          docker rm site || true
+          docker run -d -p 80:80 --name site 461546078282.dkr.ecr.us-east-2.amazonaws.com/site_prod:v1.0
+          docker ps
+          EOF
+          rm chavekey.pem  
