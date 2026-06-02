@@ -40,12 +40,10 @@ jobs:
     steps:
       - name: Executar comandos na EC2 via SSH
         env:
-          SSH_KEY: ${{ secrets.INSTANCE_KEY }}
+          SSH_KEY_BASE64: ${{ secrets.INSTANCE_KEY }}
         run: |
-          # 1. Cria a chave injetando o bloco de forma literal
-          cat << 'EOF' > chavekey.pem
-          ${{ secrets.INSTANCE_KEY }}
-          EOF
+          # 1. Decodifica a chave Base64 de volta para o arquivo .pem original
+          echo "$SSH_KEY_BASE64" | base64 -d > chavekey.pem
           
           # 2. Protege as permissões da chave
           chmod 400 chavekey.pem
