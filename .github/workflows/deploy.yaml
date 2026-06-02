@@ -49,7 +49,7 @@ jobs:
           chmod 400 chavekey.pem
           
           # 3. Conecta via SSH na EC2
-          ssh -i chavekey.pem -o StrictHostKeyChecking=no ec2-user@${{ secrets.PUBLIC_IP }} << 'EOF'
+          ssh -i chavekey.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.PUBLIC_IP }} << 'EOF'
             
             # Comandos executados DENTRO da EC2
             aws ecr get-login-password --region us-east-2 | sudo docker login --username AWS --password-stdin 461546078282.dkr.ecr.us-east-2.amazonaws.com
