@@ -5,7 +5,7 @@ on:
     branches:
       - main
 
-jobs: # CORRIGIDO: Colado na parede esquerda
+jobs:
   build_ecr: 
     name: Build and Push to ECR
     runs-on: ubuntu-latest
@@ -34,17 +34,18 @@ jobs: # CORRIGIDO: Colado na parede esquerda
           docker push 461546078282.dkr.ecr.us-east-2.amazonaws.com/site_prod:v1.0
 
   job2:
-    name: deploy-ec2
+    name: Deploy EC2 SSH
     needs: build_ecr
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy EC2 SSH
+      - name: Executar comandos na EC2 via SSH
         env:
-          # Injeta a Secret de forma segura como uma variável de ambiente do processo
           SSH_KEY: ${{ secrets.INSTANCE_KEY }}
         run: |
-          # 1. Cria a chave preservando as quebras de linha usando a variável de ambiente
-          echo "$SSH_KEY" > chavekey.pem
+          # 1. Cria a chave injetando o bloco de forma literal
+          cat << 'EOF' > chavekey.pem
+          ${{ secrets.INSTANCE_KEY }}
+          EOF
           
           # 2. Protege as permissões da chave
           chmod 400 chavekey.pem
