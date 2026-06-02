@@ -38,19 +38,19 @@ jobs:
     needs: build_ecr
     runs-on: ubuntu-latest
     steps:
-      - name: Executar comandos na EC2 via SSH
-        env:
-          SSH_KEY_BASE64: ${{ secrets.INSTANCE_KEY }}
+      - name: Checkout do código
+        uses: actions/checkout@v5.0.0
+
+      # 1. Essa Action configura o agente SSH, cria o arquivo e aplica o chmod correto automaticamente
+      - name: Configurar Chave SSH Nativamente
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.INSTANCE_KEY }}
+
+      # 2. Executa os comandos diretamente na EC2 sem precisar gerenciar o arquivo .pem
+      - name: Conectar na EC2 e rodar os comandos
         run: |
-          
-          
-         
-          echo "${{ secrets.INSTANCE_KEY }}" | tr -d '\r\n ' | base64 -d > chavekey.pem
-          
-          chmod 400 chavekey.pem
-          
-          # 3. Conecta via SSH na EC2
-          ssh -i chavekey.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.PUBLIC_IP }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.PUBLIC_IP }} << 'EOF'
             
             # Comandos executados DENTRO da EC2
             aws ecr get-login-password --region us-east-2 | sudo docker login --username AWS --password-stdin 461546078282.dkr.ecr.us-east-2.amazonaws.com
@@ -63,6 +63,3 @@ jobs:
             sudo docker run -d -p 80:80 --name site 461546078282.dkr.ecr.us-east-2.amazonaws.com/site_prod:v1.0
             sudo docker ps
           EOF
-          
-          # 4. Limpa a chave do runner
-          rm -f chavekey.pem
