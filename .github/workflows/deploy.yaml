@@ -39,17 +39,20 @@ jobs: # CORRIGIDO: Colado na parede esquerda
     runs-on: ubuntu-latest
     steps:
       - name: Deploy EC2 SSH
+        env:
+          # Injeta a Secret de forma segura como uma variável de ambiente do processo
+          SSH_KEY: ${{ secrets.INSTANCE_KEY }}
         run: |
+          # 1. Cria a chave preservando as quebras de linha usando a variável de ambiente
+          echo "$SSH_KEY" > chavekey.pem
           
-          echo "${{ secrets.INSTANCE_KEY }}" > chavekey.pem
-          
-          
+          # 2. Protege as permissões da chave
           chmod 400 chavekey.pem
           
-          
+          # 3. Conecta via SSH na EC2
           ssh -i chavekey.pem -o StrictHostKeyChecking=no ec2-user@${{ secrets.PUBLIC_IP }} << 'EOF'
             
-           
+            # Comandos executados DENTRO da EC2
             aws ecr get-login-password --region us-east-2 | sudo docker login --username AWS --password-stdin 461546078282.dkr.ecr.us-east-2.amazonaws.com
             
             sudo docker pull 461546078282.dkr.ecr.us-east-2.amazonaws.com/site_prod:v1.0
@@ -61,5 +64,5 @@ jobs: # CORRIGIDO: Colado na parede esquerda
             sudo docker ps
           EOF
           
-          
+          # 4. Limpa a chave do runner
           rm -f chavekey.pem
