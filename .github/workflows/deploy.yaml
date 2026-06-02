@@ -33,21 +33,23 @@ jobs: # CORRIGIDO: Colado na parede esquerda
           docker tag meu-site:v1.0 461546078282.dkr.ecr.us-east-2.amazonaws.com/site_prod:v1.0
           docker push 461546078282.dkr.ecr.us-east-2.amazonaws.com/site_prod:v1.0
 
-  job2: # CORRIGIDO: Alinhado perfeitamente com o build_ecr
+  job2:
     name: deploy-ec2
     needs: build_ecr
     runs-on: ubuntu-latest
     steps:
       - name: Deploy EC2 SSH
         run: |
-          # 1. Cria a chave usando a Secret direto
+          # 1. Cria a chave usando a Secret
           echo "${{ secrets.INSTANCE_KEY }}" > chavekey.pem
+          
+          # 2. SEGREDO AQUI: Trava as permissões da chave imediatamente (Apenas o dono lê)
           chmod 400 chavekey.pem
           
-          # 2. Injetamos a Secret do IP diretamente na chamada do SSH e mudamos para o usuário 'ubuntu'
-          ssh -i chavekey.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.PUBLIC_IP }} << 'EOF'
+          # 3. Conecta via SSH (Troque 'ec2-user' por 'ubuntu' se a sua máquina for Ubuntu)
+          ssh -i chavekey.pem -o StrictHostKeyChecking=no ec2-user@${{ secrets.PUBLIC_IP }} << 'EOF'
             
-            # 3. Comandos executados DENTRO da EC2
+            # Comandos executados DENTRO da EC2
             aws ecr get-login-password --region us-east-2 | sudo docker login --username AWS --password-stdin 461546078282.dkr.ecr.us-east-2.amazonaws.com
             
             sudo docker pull 461546078282.dkr.ecr.us-east-2.amazonaws.com/site_prod:v1.0
@@ -59,5 +61,5 @@ jobs: # CORRIGIDO: Colado na parede esquerda
             sudo docker ps
           EOF
           
-          # 4. Limpa a chave do runner do GitHub
-          rm chavekey.pem
+          # 4. Limpa a chave do runner
+          rm -f chavekey.pem
